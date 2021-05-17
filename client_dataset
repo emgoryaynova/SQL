@@ -1,0 +1,86 @@
+/* Your company database contains the following tables
+- city
+city_id - id of the city where the promotion is taking place
+client_city_id - id of the city where the customer is located
+city - city
+client_city - the city where the customer is located
+
+-client
+client_id - customer id
+client_city_id - id of the city where the customer is located
+birth_date - customer's date of birth
+registration - buyer's registration date
+
+-promotion
+promotion_id - promotion id
+category_id - category id
+promotion_name - promotion
+category_name - category
+partner_id - partner id
+partner_name - partner
+
+-purchase
+purchase_id - purchase id
+partner_id - partner id
+client_id - customer id
+city_id - city id
+promotion_id - promotion id
+category_id - category id
+purchase_date - Date of purchase
+price - unit price
+quantity - the number of units sold
+status - purchase status
+
+You need to write a query to get a table like this
+
+purchase_date - Date of purchase
+purchase_id - purchase id
+client_id - customer id
+client_age - customer age
+client_registration_age - how long has a person been using your stores
+client_category - contains new or old if this is the first or subsequent purchase, respectively
+promotion_name - promotion
+category_name - category
+partner_name - partner
+client_city - the city where the customer is located
+city ​​- city
+revenue - the amount of revenue
+quantity - the number of units sold
+
+In this case, the table should contain only values ​​where the status field contains the value 1, and only those where purchase_date is in the range from 05/01/2020 to 08/01/2020*/
+
+SELECT purchase_date,
+       purchase_id,
+       p.client_id,
+       CASE
+           WHEN toDayOfYear(now()) >= toDayOfYear(birth_date) THEN datediff('year', birth_date, now())
+           ELSE datediff('year', birth_date, now())-1
+       END AS client_age,
+       CASE
+           WHEN toDayOfYear(now()) >= toDayOfYear(registration) THEN datediff('year', registration, now())
+           ELSE datediff('year', registration, now())-1
+       END AS client_registration_age,
+       CASE
+           WHEN c.client_id in
+                  (SELECT client_id
+                   FROM
+                     (SELECT client_id,
+                             count(DISTINCT purchase_id)
+                      FROM project_variant_2.purchase
+                      GROUP BY client_id
+                      HAVING count(DISTINCT purchase_id) > 1) AS tbl) THEN 'old'
+           ELSE 'new'
+       END AS client_category,
+       promotion_name,
+       category_name,
+       partner_name,
+       client_city,
+       city,
+       price * quantity AS revenue,
+       quantity
+FROM project_variant_2.purchase p
+LEFT JOIN project_variant_2.client c ON c.client_id = p.client_id
+LEFT JOIN project_variant_2.promotion pr ON pr.promotion_id = p.promotion_id
+LEFT JOIN project_variant_2.city city ON c.client_city_id = city.client_city_id
+WHERE status = '1'
+  AND purchase_date BETWEEN '2020-05-01' AND '2020-08-01'
